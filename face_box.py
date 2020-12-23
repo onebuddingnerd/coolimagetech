@@ -32,7 +32,7 @@ while True:
     #       enforce more selectivity
     faces = faceCascade.detectMultiScale(frame,1.3,5)
 
-    # Draw a rectangle around the faces
+    # Draw a rectangle around the face(s)
     for (x, y, w, h) in faces:
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
