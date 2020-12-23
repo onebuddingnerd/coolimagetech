@@ -24,7 +24,12 @@ while True:
     # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) # greyscale version of frame
 
     # detect the face(s)
-    # args
+    # args: 
+    #   1. the frame from the video capture
+    #   2. 'scaleFactor': the extent of reduction at each image scale 
+    #       (scaled images are stacked upon each other in the detection process)
+    #   3. 'minNeighbors': selectivity of classification -- higher values
+    #       enforce more selectivity
     faces = faceCascade.detectMultiScale(frame,1.3,5)
 
     # Draw a rectangle around the faces
