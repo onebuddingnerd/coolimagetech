@@ -11,7 +11,7 @@ File Objective Descriptions:
 			- in both color and greyscale (by processing the frames individually, using the technique in image_manips1.py, before output)
 
 	3. face_box.py
-		- Using the HAAR cascade pre-trained classifier (open-source, link to github source .xml code in file) to detect faces
+		- Using the HAAR cascade pre-trained classifier (open-source, link to github source .xml code in file) to detect faces on a camera feed
 		- Drawing rectangles around the detections
 
 ----
