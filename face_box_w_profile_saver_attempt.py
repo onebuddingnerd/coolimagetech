@@ -25,12 +25,18 @@ def compute_diff_scores(i1, i2):
     filenames = []
     fn_path = './saved_faces/facenames.txt'
     f1_facenames = open(fn_path, 'r') if os.path.isfile(fn_path) else None
-
-    print('current files')
-    print(f1_facenames.readlines)
+    
+    # debugging: OK SO WHY ISN'T THIS WORKING YET??
+    if (not (f1_facenames == None)):
+        f1_facenames.seek(0)
+        print('current files')
+        print(f1_facenames.readlines())
+        f1_facenames.seek(0)
 
     if (not(f1_facenames == None)):
+        print('Not None')
         for name in f1_facenames.readlines():
+            print('found existing user ',  names)
             names = name.split('\t')
             fullphoto_name, profilepic_name = names[0], names[1]
             print('comparing with ' + profilepic_name)
@@ -40,6 +46,8 @@ def compute_diff_scores(i1, i2):
             diff = i2[0:xmax,0:ymax,0:zmax] - i2[0:xmax,0:ymax,0:zmax]
             diff = diff if diff > 0 else diff*(-1)
             scores.append(diff)
+
+    f1_facenames.close()
 
     return scores, filenames
 
@@ -88,11 +96,12 @@ def face_box_profile_save():
             if (len(diff_scores) == 0): # save the image(s)
                 newname = input("enter name: ")
                 fn_path = './saved_faces/facenames.txt'
-                f1 = open(fn_path, 'w+')
+                f1 = open(fn_path, 'a') if os.path.isfile(fn_path) else open(fn_path, 'w+')
                 f1.write(newname+'.png\t'+newname+'_pp.png\n')
                 cv2.imwrite('./saved_faces/'+newname+'.png', a_face)
                 cv2.imwrite('./saved_faces/'+newname+'_pp.png', a_face_only)
                 print('new user registered\n')
+                f1.close()
 
             else:
                 min_idx = get_min_idx(diff_scores)
@@ -102,11 +111,12 @@ def face_box_profile_save():
                 if answer == 'no': #save the image
                     newname = input("enter name: ")
                     fn_path = './saved_faces/facenames.txt'
-                    f1 = open(fn_path, 'a')
+                    f1 = open(fn_path, 'a') if os.path.isfile(fn_path) else open(fn_path, 'w+')
                     f1.write(newname+'.png\t'+newname+'_pp.png\n')
                     cv2.imwrite('./saved_faces/'+newname+'.png', a_face)
                     cv2.imwrite('./saved_faces/'+newname+'_pp.png', a_face_only)
                     print('new user registered\n')
+                    f1.close()
                 else:
                     print('welcome ' + name_potential_match)
 
