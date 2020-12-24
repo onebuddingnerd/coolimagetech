@@ -12,10 +12,11 @@ f_imagenames.close()
 # a cascade is an object that has been trained on many +/-
 # images (here w/ a face and w/o) and tries to distinguish
 # xml for Haar Cascade is open-source and at following link
-link1 = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
-xml_file = open('haarcascade_frontalface_default.xml','w+')
-xml_file.write(requests.get(link1).text)
-xml_file.close()
+if len(sys.argv) > 0:
+    link1 = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
+    xml_file = open('haarcascade_frontalface_default.xml','w+')
+    xml_file.write(requests.get(link1).text)
+    xml_file.close()
 
 faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 video_capture = cv2.VideoCapture(0)
