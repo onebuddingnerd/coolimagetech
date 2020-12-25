@@ -46,4 +46,5 @@ def camera_capture_grey():
     cv2.destroyAllWindows()
 
 
-camera_capture()
+#camera_capture()
+camera_capture_grey()
