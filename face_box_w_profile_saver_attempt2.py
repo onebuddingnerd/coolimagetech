@@ -2,17 +2,12 @@ import cv2
 import os
 import sys
 import requests
+from PIL import Image
 
-#faceCascade = None
-#saved_dir = './saved_faces'
-#f_imagenames = open('./saved_faces/facenames.txt','w+')
-#f_imagenames.close()
 
-# creating the cascade;
-# a cascade is an object that has been trained on many +/-
-# images (here w/ a face and w/o) and tries to distinguish
-# xml for Haar Cascade is open-source and at following link
-if len(sys.argv) > 0: 
+mode = 'debug' if (len(sys.argv) > 0 and sys.argv[0] == 'd') else '' 
+
+if len(sys.argv) > 1: 
     link1 = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
     xml_file = open('haarcascade_frontalface_default.xml','w+')
     xml_file.write(requests.get(link1).text)
@@ -21,23 +16,36 @@ if len(sys.argv) > 0:
 faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 video_capture = cv2.VideoCapture(0)
 
+def cv2pil(cv):
+    colorconv_cv = cv2.cvtColor(cv, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(colorconv_cv)
+
+def pil2cv(pil):
+    cv2im = np.array(pil)
+    return cv2im[:,:,::-1] # reversing the z-axis (color channels: RGB -> BGR)    
+
 def compute_diff_scores(i1, i2):
     scores = []
     filenames = []
-    
+
     users = os.listdir('./saved_faces')
-    print('found users ', users)
+
     k = 0
     while (k < len(users)):
         file = users[k]
         if (file.endswith('.png')):
             if (file.endswith('_pp.png')):
                 name = file[:file.index('_pp.png')]
-                print('comparing with ' + name)
+                if mode == 'debug': print('comparing with ' + name)
                 filenames.append(name)
                 i3 = cv2.imread('./saved_faces/'+name+'_pp.png')
-                xmax, ymax, zmax = min(i2.shape[0],i3.shape[0]), min(i2.shape[1],i3.shape[1]), min(i2.shape[2],i3.shape[2])
-                diff = abs(i2[0:xmax,0:ymax,0:zmax] - i3[0:xmax,0:ymax,0:zmax])
+                
+                # resize both images to the smaller dimension (smaller image unchanged)
+
+
+                #xmax, ymax, zmax = min(i2.shape[0],i3.shape[0]), min(i2.shape[1],i3.shape[1]), min(i2.shape[2],i3.shape[2])
+                #diff = abs(i2[0:xmax,0:ymax,0:zmax] - i3[0:xmax,0:ymax,0:zmax])
+                
                 diff = sum(sum(sum(diff)))
                 diff = diff if diff > 0 else diff*(-1)
                 scores.append(diff)
@@ -86,9 +94,14 @@ def face_box_profile_save():
             a_face_bounds = faces[0] # take the first (should be only) face
             (x,y,w,h) = a_face_bounds
             a_face = frame
-            a_face_only = frame[x:x+w,y:y+h]
+            a_face_only = frame[y:y+h,x:x+w] # NOTICE y-axis first
             diff_scores, diff_names = compute_diff_scores(a_face, a_face_only)
-            print(diff_scores, diff_names)
+
+            if mode == 'debug':
+                print('comparing w', diff_names)
+                print('scores are', diff_scores)
+
+            # deciding whether to authenticate or register
             if (len(diff_scores) == 0): # save the image(s)
                 newname = input("enter name: ")
                 cv2.imwrite('./saved_faces/'+newname+'.png', a_face)
@@ -100,7 +113,7 @@ def face_box_profile_save():
                 # ask if the person is the same one as in the min-different photo
                 name_potential_match = diff_names[min_idx]
                 answer = input("Are you " + name_potential_match + "(y/n): ")
-                if answer == 'no': #save the image
+                if answer == 'n': #save the image
                     newname = input("enter name: ")
                     cv2.imwrite('./saved_faces/'+newname+'.png', a_face)
                     cv2.imwrite('./saved_faces/'+newname+'_pp.png', a_face_only)

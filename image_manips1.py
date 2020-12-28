@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 # for the 'X' press 
 def demo1():
 	# read image
-	i1 = cv2.imread("./messi1.png")
+	i1 = cv2.wimread("./messi1.png")
 	
 	# display image
 	cv2.imshow("i1",i1)
@@ -39,7 +39,7 @@ def demo3():
 
 
 # uncomment!
-#demo3() 
+demo3() 
 #demo2()
 #demo1()
 
