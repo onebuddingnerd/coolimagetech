@@ -3,7 +3,7 @@ Login/Signup
 	1. I just picked the mean value across the three channels on the z axis and coded up the L2 Norm formula (mean of squared cell values) 
 	2. Using Advanced DL Techniques for more Robust Face Recognition:
 		- https://www.pyimagesearch.com/2018/09/24/opencv-face-recognition/
-			- Requires PyTorch for making embeddings, install available here
+			- Requires PyTorch for making embeddings, install available here https://pytorch.org/
 				- embeddings are vectors for the imagte
 
 OpenCV Links:
