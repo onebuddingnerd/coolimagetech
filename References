@@ -4,7 +4,7 @@ Login/Signup
 	2. Using Advanced DL Techniques for more Robust Face Recognition:
 		- https://www.pyimagesearch.com/2018/09/24/opencv-face-recognition/
 			- Requires PyTorch for making embeddings, install available here https://pytorch.org/
-				- embeddings are vectors for the imagte
+				- embeddings are vectors for the image that have been passed through a neural network to generate a lower-dimensional representation of the image that (hopefully) brings attention to differentiating features and is more readily applicable for classification/verification tasks
 
 OpenCV Links:
 	- Getting Started: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_gui/py_image_display/py_image_display.html
