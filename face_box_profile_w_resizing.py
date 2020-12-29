@@ -40,12 +40,12 @@ def get_diff(i1, i2):
     i2r, i2g, i2b = i2_resized_cv[:,:,0], i2_resized_cv[:,:,1], i2_resized_cv[:,:,2]
     i2_1 = np.array([[(i2r[i,j] + i2g[i,j] + i2b[i,j])/3  for j in range (i2_resized_cv.shape[1])] for i in range(i2_resized_cv.shape[0])], dtype = 'int64')
 
-    # The normalized Sum of Square Difference
+    # The normalized Sum of Square Difference -- This is pretty bad in the cases I tested
     # sq_diff = (i2_1-i1_1)**2
     # sum_sq_dff = sum(sum(sq_diff))
     # normalize = ((sum(sum(i1_1**2))) + (sum(sum(i1_1**2))))**(.5)
 
-    # The difference in the L2 Norm
+    # The difference in the L2 Norms
     L2_i1 = (sum(sum(i1_1**2)))**(0.5)
     L2_i2 = (sum(sum(i2_1**2)))**(0.5)
 
@@ -86,8 +86,6 @@ def face_box_profile_save():
         # bool says if you have run out of frames -- irrelevant for webcame that 
         # has infinite frames til quit
         ret, frame = video_capture.read()
-
-        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) # greyscale version of frame
 
         # detect the face(s)
         # args: 
