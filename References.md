@@ -6,6 +6,7 @@
 	* https://www.pyimagesearch.com/2018/09/24/opencv-face-recognition/
 		* Requires PyTorch for making embeddings, install available here https://pytorch.org/
 			* embeddings are vectors for the image that have been passed through a neural network to generate a lower-dimensional representation of the image that (hopefully) brings attention to differentiating features and is more readily applicable for classification/verification tasks
+	* **Dlib** will enable pretty straightforward generation of embeddings, which should be markedly better for photo comparison, as shown here: https://medium.com/data-science-lab-amsterdam/face-recognition-with-python-in-an-hour-or-two-d271324cbeb3
 
 #### OpenCV Links:
 
