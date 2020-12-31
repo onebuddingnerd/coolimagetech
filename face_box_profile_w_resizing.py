@@ -4,6 +4,7 @@ import os
 import sys
 import requests
 from PIL import Image
+import face_recognition
 
 mode = 'debug' if (len(sys.argv) > 1 and sys.argv[1] == 'd') else '' 
 
@@ -16,7 +17,15 @@ if len(sys.argv) > 2:
 faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 video_capture = cv2.VideoCapture(0)
 
-def get_diff(i1, i2):
+def get_diff(i1, i2): 
+
+    face_embeddings_i2 = np.array(face_recognition.face_encodings(i2))
+    face_embeddings_i1 = np.array(face_recognition.face_encodings(i1))
+    
+    return sum(sum(abs(face_embeddings_i2 - face_embeddings_i1)))
+
+
+def get_diff1(i1, i2):
     def cv2pil(cv):
         colorconv_cv = cv2.cvtColor(cv, cv2.COLOR_BGR2RGB)
         return Image.fromarray(colorconv_cv)
@@ -52,7 +61,7 @@ def get_diff(i1, i2):
     return abs(L2_i2 - L2_i1)
 
 
-def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only)
+def compute_diff_scores(i1, i2): # params: full frame (a_face), crop (a_face_only)
     scores = []
     filenames = []
 
@@ -67,7 +76,7 @@ def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only
                 if mode == 'debug': print('comparing with ' + name)
                 filenames.append(name)
                 i3 = cv2.imread('./saved_faces/'+name+'_pp.png')
-                diff = get_diff(i3, i2)
+                diff = get_diff(i3, i2) # ATTENTION: passing in the full frame now
                 scores.append(diff)
         k = k + 1
 
