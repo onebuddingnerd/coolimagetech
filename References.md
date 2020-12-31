@@ -15,5 +15,10 @@
 * Video Capture: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_gui/py_video_display/py_video_display.html
 * Lowdown on Cascade Classifiers: https://docs.opencv.org/3.4/db/d28/tutorial_cascade_classifier.html
 
+#### GUI Links:
+* Tutorial: https://realpython.com/pysimplegui-python/
+* Adjusting Layouts Based on User Interaction with GUI: https://stackoverflow.com/questions/59500558/how-to-display-different-layouts-based-on-button-clicks-in-pysimple-gui-persis
+* Example of Webcam Playback on OpenCV: https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_OpenCV_Webcam.py
+
 
 **PS:** And, really, that's all the main stuff. See! I haven't really done that much when it's presented in condensed summary!
