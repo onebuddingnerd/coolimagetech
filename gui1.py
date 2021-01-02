@@ -38,7 +38,6 @@ def mkSignupLayout():
         [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
         [sg.Text(size=(40, 1), key="-TOUT-SIGNUP-")],
         [sg.Image(key="-IMAGE_SIGNUP-")]
-        #[sg.Button('Lock Face')]
     ]
 
     layout = [[sg.Column(left_col), sg.Column(right_col)]]
@@ -88,11 +87,7 @@ def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only
 
 # takes frame and returns bytes of frame compatible with cv
 def get_bytes(frame):
-    J = Image.fromarray(frame) 
-    binary_io = io.BtyesIO()
-    J.save(binary_io, format = 'PNG') # turn the frame into binary memory resident stream (What does that mean?) 
-    
-    return binary_io.getvalue()
+    return cv2.imencode('.png', frame)[1].tobytes()
 
 def mainlooprun():
 
@@ -113,7 +108,7 @@ def mainlooprun():
                 cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
             # repeatedly update the 'Image' in the GUI with the captured frame
-            window.FindElement('-IMAGE-').Update(data = get_bytes(frame))
+            window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(frame))
             # window.['-IMAGE-'].update(data = get_bytes(frame))
 
             if event == 'New User':
@@ -125,7 +120,7 @@ def mainlooprun():
                 for (x, y, w, h) in faces:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-                window.FindElement('-IMAGE-').Update(data = frame)#get_bytes(frame))
+                window.FindElement('-IMAGE_SIGNUP-').Update(data = frame)#get_bytes(frame))
 
                 if event == 'Lock Face':
                     if len(faces) == 0:
