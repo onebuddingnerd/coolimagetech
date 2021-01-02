@@ -5,82 +5,62 @@ import os
 import sys
 import requests
 from PIL import Image
+import face_recognition
 import io
+import PySimpleGUI as sg
 
 
-def mkGreetWindow():
-	left_col = [
-		[sg.Button('New User')],
-		[sg.Button('Returning User')]
-	]
+def mkGreetLayout():
+    left_col = [
+        [sg.Button('New User')],
+        [sg.Button('Returning User')]
+    ]
 
-	right_col = [
-		[sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
-	    [sg.Text(size=(40, 1), key="-TOUT-")],
-	    [sg.Image(key="-IMAGE-")],
-	]
+    right_col = [
+        [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
+        [sg.Text(size=(40, 1), key="-TOUT-")],
+        [sg.Image(key="-IMAGE-")],
+    ]
 
-	layout = [[sg.Column(left_col), sg.Column(right_col)]]
+    layout = [[sg.Column(left_col), sg.Column(right_col)]]
 
-	window = sg.Window('Login/Signup', layout)
+    return layout
 
-	return window
+def mkSignupLayout():
+    left_col = [
+        [sg.Text('Please Enter Your Name')],
+        [sg.Input(key = '-NEWNAME-')],
+        [sg.Button('Submit')],
+        [sg.Button('Exit1')]
+    ]
 
-def mkSignupWindow():
-	left_col = [
-		[sg.Text('Please Enter Your Name')],
-		[sg.Input(key = '-NEWNAME-')],
-		[sg.Button('Submit')]
-	]
+    right_col = [
+        [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
+        [sg.Text(size=(40, 1), key="-TOUT-")],
+        [sg.Image(key="-IMAGE-")]
+        #[sg.Button('Lock Face')]
+    ]
 
-	right_col = [
-		[sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
-	    [sg.Text(size=(40, 1), key="-TOUT-")],
-	    [sg.Image(key="-IMAGE-")],
-	]
+    layout = [[sg.Column(left_col), sg.Column(right_col)]]
 
-	layout = [[sg.Column(left_col), sg.Column(right_col)]]
+    return layout
 
-	window = sg.Window('Login/Signup', layout)
+def mkLoginLayout():
+    # DO LATER
+    return [[]]
 
-	return window
+LAYOUTS = [sg.Column(mkGreetLayout(), key = '-GREET-'),
+            sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False),
+            sg.Column(mkLoginLayout(), key = '-LOGIN-', visible = False)]
 
 #### BEGIN: code from previous file #### 
 
-def get_diff(i1, i2):
-    def cv2pil(cv):
-        colorconv_cv = cv2.cvtColor(cv, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(colorconv_cv)
+def get_diff(i1, i2): 
 
-    def pil2cv(pil):
-        cv2im = np.array(pil)
-        return cv2im[:,:,::-1] # reversing the z-axis (color channels: RGB -> BGR)
+    face_embeddings_i2 = np.array(face_recognition.face_encodings(i2))
+    face_embeddings_i1 = np.array(face_recognition.face_encodings(i1))
 
-    # resize the two images (smaller one unchanged, larger one shrunken)
-    ymax, xmax = min(i2.shape[0], i1.shape[0]), min(i2.shape[1], i1.shape[1])
-
-    i1_pil_resized = (cv2pil(i1)).resize((xmax,ymax)) 
-    i1_resized_cv = pil2cv(i1_pil_resized)
-
-    i2_pil_resized = (cv2pil(i2)).resize((xmax,ymax))
-    i2_resized_cv = pil2cv(i2_pil_resized)
-
-    # use mean value across channels
-    i1r, i1g, i1b = i1_resized_cv[:,:,0], i1_resized_cv[:,:,1], i1_resized_cv[:,:,2]
-    i1_1 = np.array([[(i1r[i,j] + i1g[i,j] + i1b[i,j])/3  for j in range (i1_resized_cv.shape[1])] for i in range(i1_resized_cv.shape[0])], dtype = 'int64')
-    i2r, i2g, i2b = i2_resized_cv[:,:,0], i2_resized_cv[:,:,1], i2_resized_cv[:,:,2]
-    i2_1 = np.array([[(i2r[i,j] + i2g[i,j] + i2b[i,j])/3  for j in range (i2_resized_cv.shape[1])] for i in range(i2_resized_cv.shape[0])], dtype = 'int64')
-
-    # The normalized Sum of Square Difference -- This is pretty bad in the cases I tested
-    # sq_diff = (i2_1-i1_1)**2
-    # sum_sq_dff = sum(sum(sq_diff))
-    # normalize = ((sum(sum(i1_1**2))) + (sum(sum(i1_1**2))))**(.5)
-
-    # The difference in the L2 Norms
-    L2_i1 = (sum(sum(i1_1**2)))**(0.5)
-    L2_i2 = (sum(sum(i2_1**2)))**(0.5)
-
-    return abs(L2_i2 - L2_i1)
+    return sum(sum(abs(face_embeddings_i2 - face_embeddings_i1)))
 
 
 def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only)
@@ -108,47 +88,84 @@ def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only
 
 # takes frame and returns bytes of frame compatible with cv
 def get_bytes(frame):
-	J = Image.fromarray(frame) 
-	binary_io = io.BtyesIO()
-	J.save(binary_io, format = 'PNG') # turn the frame into binary memory resident stream (What does that mean?) 
-	
-	return binary_io.getvalue()
+    J = Image.fromarray(frame) 
+    binary_io = io.BtyesIO()
+    J.save(binary_io, format = 'PNG') # turn the frame into binary memory resident stream (What does that mean?) 
+    
+    return binary_io.getvalue()
 
 def mainlooprun():
 
-	window = mkGreetWindow()
-	cap = cv2.VideoCapture(0)
-	faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-	
-	while True:
+    window = sg.Window(LAYOUTS)
+    print('vid capture about to begin')
+    cap = cv2.VideoCapture(0)
+    faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    
+    while True:
 
-		event, vals = window.read()
-		ret, frame = cap.read()
+        event, vals = window.read()
+        ret, frame = cap.read()
 
-		if event == 'New User' or event == 'Returning User':
-			faces = faceCascade.detectMultiScale(frame,1.3,5)
+        if event == 'New User' or event == 'Returning User':
+            faces = faceCascade.detectMultiScale(frame, 1.3, 5)
 
-	        # Draw a rectangle around the face(s) in the frame
-	        for (x, y, w, h) in faces:
-	            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            for (x,y,w,h) in faces:
+                cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
-			# repeatedly update the 'Image' in the GUI with the captured frame
-			window.FindElement('-IMAGE-').Update(data = get_bytes(frame))
-			# window.['-IMAGE-'].update(data = get_bytes(frame))
+            # repeatedly update the 'Image' in the GUI with the captured frame
+            window.FindElement('-IMAGE-').Update(data = get_bytes(frame))
+            # window.['-IMAGE-'].update(data = get_bytes(frame))
 
-			if event == 'New User':
-				window = mkGreetWindow()
-				event1, vals1 = window.read()
-				faces = faceCascade.detectMultiScale(frame,1.3,5)
+            if event == 'New User':
+                # make greet window invisible and signup window visible instead
+                window['-GREET-'].update(visible = False)
+                window['-SIGNUP-'].update(visible = True)
 
-		        # Draw a rectangle around the face(s) in the frame
-		        for (x, y, w, h) in faces:
-		            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                # Draw a rectangle around the face(s) in the frame
+                for (x, y, w, h) in faces:
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-		        window.FindElement('-IMAGE-').Update(data = get_bytes(frame))
+                window.FindElement('-IMAGE-').Update(data = get_bytes(frame))
 
-				if event1 == 'Submit':
-					name = vals1['-NEWNAME-']
+                if event == 'Lock Face':
+                    if len(faces) == 0:
+                        bds = faces[0]
+                        x,y,w,h = bds
+
+                        #newname = input("enter name: ")
+                        if event == 'Submit':
+                            name = values['-NEWNAME-']
+                            uncropped, cropped = frame, frame[y:y+h,x:x+w]
+                            cv2.imwrite('./saved_faces/'+newname+'.png', a_face)
+                            cv2.imwrite('./saved_faces/'+newname+'_pp.png', a_face_only)
+                            print('new user registered\n')
+                            break
+
+            elif event == 'Returning User': # Returning User
+                window['-GREET-'].update(visible = False)
+                window['-LOGIN-'].update(visible = True)
+
+
+                if len(faces) == 0:
+                    bds = faces[0]
+                    x,y,w,h = bds
+                    uncropped, cropped = frame, frame[y:y+h,x:x+w]
+                    diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
+
+                    min_idx = get_min_idx(diff_scores)
+                    # ask if the person is the same one as in the min-different photo
+                    name_match = diff_names[min_idx]
+
+                    print('Welcome ' + name_match)
+                    break
+
+    window.close()
+
+mainlooprun()
+
+
+
+
 
 
 
