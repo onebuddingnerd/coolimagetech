@@ -31,6 +31,7 @@ def mkSignupLayout():
         [sg.Text('Please Enter Your Name')],
         [sg.Input(key = '-NEWNAME-')],
         [sg.Button('Submit')],
+        [sg.Button('Lock Face')],
         [sg.Button('Exit1')]
     ]
 
@@ -89,21 +90,35 @@ def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only
 def get_bytes(frame):
     return cv2.imencode('.png', frame)[1].tobytes()
 
+def cv2pil(cv):
+        colorconv_cv = cv2.cvtColor(cv, cv2.COLOR_BGR2RGB)
+        return Image.fromarray(colorconv_cv)
+
+def pil2cv(pil):
+    cv2im = np.array(pil)
+    return cv2im[:,:,::-1] # reversing the z-axis (color channels: RGB -> BGR)
+
+def resize_image(frame):
+    framePIL = cv2pil(frame)
+    framePIL = framePIL.resize((600,400))
+    return pil2cv(framePIL)
+
+
 def mainlooprun():
 
     window = sg.Window('Login App',LAYOUTS)
     print('vid capture about to begin')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    
+
     while True:
-
         event, vals = window.read()
+        print("event: %s" % event)
         ret, frame = cap.read()
-
+        
         if event == 'New User' or event == 'Returning User':
             faces = faceCascade.detectMultiScale(frame, 1.3, 5)
-
+            
             for (x,y,w,h) in faces:
                 cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
@@ -120,7 +135,7 @@ def mainlooprun():
                 for (x, y, w, h) in faces:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-                window.FindElement('-IMAGE_SIGNUP-').Update(data = frame)#get_bytes(frame))
+                window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
 
                 if event == 'Lock Face':
                     if len(faces) == 0:
@@ -157,11 +172,3 @@ def mainlooprun():
     window.close()
 
 mainlooprun()
-
-
-
-
-
-
-
-
