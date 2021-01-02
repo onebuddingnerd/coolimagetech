@@ -18,8 +18,8 @@ def mkGreetLayout():
 
     right_col = [
         [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
-        [sg.Text(size=(40, 1), key="-TOUT-")],
-        [sg.Image(key="-IMAGE-")],
+        [sg.Text(size=(40, 1), key="-TOUT_GREET-")],
+        [sg.Image(key="-IMAGE_GREET-")],
     ]
 
     layout = [[sg.Column(left_col), sg.Column(right_col)]]
@@ -36,8 +36,8 @@ def mkSignupLayout():
 
     right_col = [
         [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
-        [sg.Text(size=(40, 1), key="-TOUT-")],
-        [sg.Image(key="-IMAGE-")]
+        [sg.Text(size=(40, 1), key="-TOUT-SIGNUP-")],
+        [sg.Image(key="-IMAGE_SIGNUP-")]
         #[sg.Button('Lock Face')]
     ]
 
@@ -49,9 +49,9 @@ def mkLoginLayout():
     # DO LATER
     return [[]]
 
-LAYOUTS = [sg.Column(mkGreetLayout(), key = '-GREET-'),
-            sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False),
-            sg.Column(mkLoginLayout(), key = '-LOGIN-', visible = False)]
+LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-')],
+            [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)],
+            [sg.Column(mkLoginLayout(), key = '-LOGIN-', visible = False)]]
 
 #### BEGIN: code from previous file #### 
 
@@ -96,7 +96,7 @@ def get_bytes(frame):
 
 def mainlooprun():
 
-    window = sg.Window(LAYOUTS)
+    window = sg.Window('Login App',LAYOUTS)
     print('vid capture about to begin')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -125,7 +125,7 @@ def mainlooprun():
                 for (x, y, w, h) in faces:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-                window.FindElement('-IMAGE-').Update(data = get_bytes(frame))
+                window.FindElement('-IMAGE-').Update(data = frame)#get_bytes(frame))
 
                 if event == 'Lock Face':
                     if len(faces) == 0:
