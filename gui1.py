@@ -107,68 +107,68 @@ def resize_image(frame):
 def mainlooprun():
 
     window = sg.Window('Login App',LAYOUTS)
-    print('vid capture about to begin')
+    print('vid capture about to begin PLEASE')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-
+    iterations = 0
     while True:
         event, vals = window.read()
-        print("event: %s" % event)
+        print("event:", event, iterations)
         ret, frame = cap.read()
         
-        if event == 'New User' or event == 'Returning User':
-            faces = faceCascade.detectMultiScale(frame, 1.3, 5)
+        faces = faceCascade.detectMultiScale(frame, 1.3, 5)
+
+        # Draw a rectangle around the face(s) in the frame
+        for (x,y,w,h) in faces:
+            cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
+
+        # repeatedly update the 'Image' in the GUI with the captured frame
+        window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
+        window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
+        # window.['-IMAGE-'].update(data = get_bytes(frame))
+
+        if event == 'New User':
+            # make greet window invisible and signup window visible instead
+            window['-GREET-'].update(visible = False)
+            window['-SIGNUP-'].update(visible = True)
             
-            for (x,y,w,h) in faces:
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
-            # repeatedly update the 'Image' in the GUI with the captured frame
-            window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(frame))
-            # window.['-IMAGE-'].update(data = get_bytes(frame))
+        #window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
 
-            if event == 'New User':
-                # make greet window invisible and signup window visible instead
-                window['-GREET-'].update(visible = False)
-                window['-SIGNUP-'].update(visible = True)
+        if event == 'Lock Face':
+            if len(faces) == 0:
+                bds = faces[0]
+                x,y,w,h = bds
 
-                # Draw a rectangle around the face(s) in the frame
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        #newname = input("enter name: ")
+        if event == 'Submit':
+            name = vals['-NEWNAME-']
+            uncropped, cropped = frame, frame[y:y+h,x:x+w]
+            cv2.imwrite('./saved_faces/'+name+'.png', uncropped)
+            cv2.imwrite('./saved_faces/'+name+'_pp.png', cropped)
+            print('new user registered\n')
+            
 
-                window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
-
-                if event == 'Lock Face':
-                    if len(faces) == 0:
-                        bds = faces[0]
-                        x,y,w,h = bds
-
-                        #newname = input("enter name: ")
-                        if event == 'Submit':
-                            name = values['-NEWNAME-']
-                            uncropped, cropped = frame, frame[y:y+h,x:x+w]
-                            cv2.imwrite('./saved_faces/'+newname+'.png', a_face)
-                            cv2.imwrite('./saved_faces/'+newname+'_pp.png', a_face_only)
-                            print('new user registered\n')
-                            break
-
-            elif event == 'Returning User': # Returning User
-                window['-GREET-'].update(visible = False)
-                window['-LOGIN-'].update(visible = True)
+        if event == 'Returning User': # Returning User
+            window['-GREET-'].update(visible = False)
+            window['-LOGIN-'].update(visible = True)
 
 
-                if len(faces) == 0:
-                    bds = faces[0]
-                    x,y,w,h = bds
-                    uncropped, cropped = frame, frame[y:y+h,x:x+w]
-                    diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
+            if len(faces) == 0:
+                bds = faces[0]
+                x,y,w,h = bds
+                uncropped, cropped = frame, frame[y:y+h,x:x+w]
+                diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
 
-                    min_idx = get_min_idx(diff_scores)
-                    # ask if the person is the same one as in the min-different photo
-                    name_match = diff_names[min_idx]
+                min_idx = get_min_idx(diff_scores)
+                # ask if the person is the same one as in the min-different photo
+                name_match = diff_names[min_idx]
 
-                    print('Welcome ' + name_match)
-                    break
-
+                print('Welcome ' + name_match)
+                break
+        if event == sg.WIN_CLOSED or event == 'Exit1':
+            break
+        iterations += 1
     window.close()
 
 mainlooprun()
