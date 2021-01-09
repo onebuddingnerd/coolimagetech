@@ -121,6 +121,7 @@ def mainlooprun():
         # Draw a rectangle around the face(s) in the frame
         for (x,y,w,h) in faces:
             cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
+        cv2.imshow(
 
         # repeatedly update the 'Image' in the GUI with the captured frame
         window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
