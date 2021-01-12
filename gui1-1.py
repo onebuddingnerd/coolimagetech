@@ -1,4 +1,3 @@
-
 import cv2
 import numpy as np
 import os
@@ -115,13 +114,15 @@ def mainlooprun():
     playback_requested = False
     ret, frame = None, None
     freeze_frame_signup = None
-
+    signup_frz_req = False
+    x1,y1,w1,h1 = None,None,None,None
+    
     while True:
         event, vals = window.read(timeout = 20)
         # ret, frame = cap.read()
         # print("event:", event, iterations)
         # ret, frame = cap.read()
-        x,y,w,h = None,None,None,None
+        
 
         if playback_requested:
             ret, frame = cap.read()
@@ -134,8 +135,8 @@ def mainlooprun():
                 cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
             # repeatedly update the 'Image' in the GUI with the captured frame
-            frame1 = frame if freeze_frame_signup == None else freeze_frame_signup
-            window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
+            frame1 = frame if not signup_frz_req else freeze_frame_signup
+            window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame1)))
             window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
 
 
@@ -155,16 +156,17 @@ def mainlooprun():
         if event == 'Lock Face':
             if len(faces) > 0:
                 bds = faces[0]
-                x,y,w,h = bds
+                x1,y1,w1,h1 = bds
                 # add code to stop updating the frame
                 freeze_frame_signup = frame
+                signup_frz_req = True
 
         #newname = input("enter name: ")
         if event == 'Submit':
             name = vals['-NEWNAME-']
             print(name)
             # x,y,w,h = faces[0]
-            uncropped, cropped = frame, frame[y:y+h,x:x+w]
+            uncropped, cropped = freeze_frame_signup, freeze_frame_signup[y1:y1+h1,x1:x1+w1]
             cv2.imwrite('./saved_faces/'+name+'.png', uncropped)
             cv2.imwrite('./saved_faces/'+name+'_pp.png', cropped)
             print('new user registered\n')
@@ -173,7 +175,6 @@ def mainlooprun():
         if event == 'Returning User': # Returning User
             window['-GREET-'].update(visible = False)
             window['-LOGIN-'].update(visible = True)
-
 
             if len(faces) == 0:
                 bds = faces[0]
