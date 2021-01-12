@@ -7,7 +7,7 @@ from PIL import Image
 import face_recognition
 import io
 import PySimpleGUI as sg
-#Hi 
+
 
 def mkGreetLayout():
     left_col = [
@@ -152,7 +152,7 @@ def mainlooprun():
         # repeatedly update the 'Image' in the GUI with the captured frame
         frame1 = frame if not signup_frz_req else freeze_frame_signup
         window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame1)))
-        window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
+        # window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
 
         if event == 'New User':
 
