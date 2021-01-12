@@ -46,6 +46,17 @@ def mkSignupLayout():
 
 def mkLoginLayout():
     # DO LATER
+
+    left_col = [
+        [sg.Text("Authenticate Here")],
+        [sg.Image(key = '-IMAGE_LOGIN-')]
+    ]
+
+    middle_col = [
+        [sg.Text()]
+    ]
+
+
     return [[]]
 
 LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-')],
@@ -102,7 +113,6 @@ def resize_image(frame):
     framePIL = framePIL.resize((600,400))
     return pil2cv(framePIL)
 
-
 def mainlooprun():
 
     window = sg.Window('Login App',LAYOUTS)
@@ -113,9 +123,14 @@ def mainlooprun():
 
     playback_requested = False
     ret, frame = None, None
+
     freeze_frame_signup = None
     signup_frz_req = False
     x1,y1,w1,h1 = None,None,None,None
+
+    freeze_frame_login = None
+    login_frz_req = False
+    x2,y2,w2,h2 = None,None,None,None
     
     while True:
         event, vals = window.read(timeout = 20)
@@ -124,21 +139,20 @@ def mainlooprun():
         # ret, frame = cap.read()
         
 
-        if playback_requested:
-            ret, frame = cap.read()
+        # if playback_requested:
+        ret, frame = cap.read()
 
-            faces = faceCascade.detectMultiScale(frame, 1.3, 5)
-            # print(len(faces))
+        faces = faceCascade.detectMultiScale(frame, 1.3, 5)
+        # print(len(faces))
 
-            # Draw a rectangle around the face(s) in the frame
-            for (x,y,w,h) in faces:
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
+        # Draw a rectangle around the face(s) in the frame
+        for (x,y,w,h) in faces:
+            cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
-            # repeatedly update the 'Image' in the GUI with the captured frame
-            frame1 = frame if not signup_frz_req else freeze_frame_signup
-            window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame1)))
-            window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
-
+        # repeatedly update the 'Image' in the GUI with the captured frame
+        frame1 = frame if not signup_frz_req else freeze_frame_signup
+        window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame1)))
+        window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
 
         if event == 'New User':
 
@@ -176,9 +190,9 @@ def mainlooprun():
             window['-GREET-'].update(visible = False)
             window['-LOGIN-'].update(visible = True)
 
-            if len(faces) == 0:
+            if len(faces) > 0:
                 bds = faces[0]
-                x,y,w,h = bds
+                x2,y2,w2,h2 = bds
                 uncropped, cropped = frame, frame[y:y+h,x:x+w]
                 diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
 
