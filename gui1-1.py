@@ -107,44 +107,63 @@ def resize_image(frame):
 def mainlooprun():
 
     window = sg.Window('Login App',LAYOUTS)
-    print('vid capture about to begin PLEASE')
+    # print('vid capture about to begin PLEASE')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     iterations = 0
+
+    playback_requested = False
+    ret, frame = None, None
+    freeze_frame_signup = None
+
     while True:
-        event, vals = window.read()
-        print("event:", event, iterations)
-        ret, frame = cap.read()
-        faces,x,y,w,h = None,None,None,None,None
+        event, vals = window.read(timeout = 20)
+        # ret, frame = cap.read()
+        # print("event:", event, iterations)
+        # ret, frame = cap.read()
+        x,y,w,h = None,None,None,None
 
-        if event == 'New User':
-            # make greet window invisible and signup window visible instead
-            window['-GREET-'].update(visible = False)
-            window['-SIGNUP-'].update(visible = True)
+        if playback_requested:
+            ret, frame = cap.read()
 
-            while faces == None:
-                faces = faceCascade.detectMultiScale(frame, 1.3, 5)
+            faces = faceCascade.detectMultiScale(frame, 1.3, 5)
+            # print(len(faces))
 
             # Draw a rectangle around the face(s) in the frame
             for (x,y,w,h) in faces:
                 cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
             # repeatedly update the 'Image' in the GUI with the captured frame
+            frame1 = frame if freeze_frame_signup == None else freeze_frame_signup
             window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
             window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
+
+
+        if event == 'New User':
+
+            playback_requested = True
+
+            # make greet window invisible and signup window visible instead
+            window['-GREET-'].update(visible = False)
+            window['-SIGNUP-'].update(visible = True)
+
             # window.['-IMAGE-'].update(data = get_bytes(frame))
 
-        #window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
-        print(faces)
+        # window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
+        # print(faces)
 
         if event == 'Lock Face':
-            if len(faces) == 0:
+            if len(faces) > 0:
                 bds = faces[0]
                 x,y,w,h = bds
+                # add code to stop updating the frame
+                freeze_frame_signup = frame
 
         #newname = input("enter name: ")
         if event == 'Submit':
             name = vals['-NEWNAME-']
+            print(name)
+            # x,y,w,h = faces[0]
             uncropped, cropped = frame, frame[y:y+h,x:x+w]
             cv2.imwrite('./saved_faces/'+name+'.png', uncropped)
             cv2.imwrite('./saved_faces/'+name+'_pp.png', cropped)
