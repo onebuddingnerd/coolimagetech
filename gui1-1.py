@@ -29,8 +29,8 @@ def mkSignupLayout():
     left_col = [
         [sg.Text('Please Enter Your Name')],
         [sg.Input(key = '-NEWNAME-')],
-        [sg.Button('Submit')],
         [sg.Button('Lock Face')],
+        [sg.Button('Submit')],
         [sg.Button('Exit1')]
     ]
 
@@ -48,16 +48,20 @@ def mkLoginLayout():
     # DO LATER
 
     left_col = [
-        [sg.Text("Authenticate Here")],
+        [sg.Text("Authenticate: Freeze Frame by pressing Lock; Wait for Auth (NONE changes to name if verified) ")],
+        [sg.Text('Verified User: NONE', key = 'Login_User_Verif')],
+        [sg.Button('Lock')],
+        [sg.Button('Submit1')]
+    ]
+
+    right_col = [
+        [sg.Text("Webcam Playback")],
         [sg.Image(key = '-IMAGE_LOGIN-')]
     ]
 
-    middle_col = [
-        [sg.Text()]
-    ]
+    layout = [[sg.Column(left_col), sg.Column(right_col)]]
 
-
-    return [[]]
+    return layout
 
 LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-')],
             [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)],
@@ -72,6 +76,12 @@ def get_diff(i1, i2):
 
     return sum(sum(abs(face_embeddings_i2 - face_embeddings_i1)))
 
+def get_min_idx(S):
+        min_idx = 0
+        for i in range(len(S)):
+            if S[i] < S[min_idx]: min_idx = i
+
+        return min_idx
 
 def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only)
     scores = []
@@ -85,7 +95,7 @@ def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only
         if (file.endswith('.png')):
             if (file.endswith('_pp.png')):
                 name = file[:file.index('_pp.png')]
-                if mode == 'debug': print('comparing with ' + name)
+                # if mode == 'debug': print('comparing with ' + name)
                 filenames.append(name)
                 i3 = cv2.imread('./saved_faces/'+name+'_pp.png')
                 diff = get_diff(i3, i2)
@@ -138,7 +148,6 @@ def mainlooprun():
         # print("event:", event, iterations)
         # ret, frame = cap.read()
         
-
         # if playback_requested:
         ret, frame = cap.read()
 
@@ -150,9 +159,11 @@ def mainlooprun():
             cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
         # repeatedly update the 'Image' in the GUI with the captured frame
-        frame1 = frame if not signup_frz_req else freeze_frame_signup
-        window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame1)))
+        frame_signup = frame if not signup_frz_req else freeze_frame_signup
+        window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame_signup)))
         # window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
+        frame_login = frame if not login_frz_req else freeze_frame_login
+        window['-IMAGE_LOGIN-'].Update(data = get_bytes(resize_image(frame_login)))
 
         if event == 'New User':
 
@@ -190,18 +201,23 @@ def mainlooprun():
             window['-GREET-'].update(visible = False)
             window['-LOGIN-'].update(visible = True)
 
+        if event == 'Lock':
             if len(faces) > 0:
                 bds = faces[0]
                 x2,y2,w2,h2 = bds
-                uncropped, cropped = frame, frame[y:y+h,x:x+w]
-                diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
+                freeze_frame_login = frame
+                login_frz_req = True
 
-                min_idx = get_min_idx(diff_scores)
-                # ask if the person is the same one as in the min-different photo
-                name_match = diff_names[min_idx]
+        if event == 'Submit1':
+            uncropped, cropped = freeze_frame_login, freeze_frame_login[y2:y2+h2,x2:x2+w2]
+            diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
 
-                print('Welcome ' + name_match)
-                break
+            min_idx = get_min_idx(diff_scores)
+            # ask if the person is the same one as in the min-different photo
+            name_match = diff_names[min_idx]
+
+            print('Welcome ' + name_match)
+            window['Login_User_Verif'].Update(data = 'Verified User: ' + name_match)
 
         if event == sg.WIN_CLOSED or event == 'Exit1':
             break
