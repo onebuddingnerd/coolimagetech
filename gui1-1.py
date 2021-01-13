@@ -7,7 +7,11 @@ from PIL import Image
 import face_recognition
 import io
 import PySimpleGUI as sg
+import serial
 
+
+commPort = '/dev/cu.usbmodem14101'
+ser = serial.Serial(commPort, baudrate = 9600, timeout = 1)
 
 def mkGreetLayout():
     left_col = [
@@ -123,6 +127,12 @@ def resize_image(frame):
     framePIL = framePIL.resize((600,400))
     return pil2cv(framePIL)
 
+def turnOnLED():
+    ser.write(b'o')
+
+def turnOffLED(): 
+    ser.write(b'x')
+    
 def mainlooprun():
 
     window = sg.Window('Login App',LAYOUTS)
@@ -213,13 +223,19 @@ def mainlooprun():
             diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
 
             min_idx = get_min_idx(diff_scores)
+            
+            print(diff_scores[min_idx], diff_names, diff_scores)
+            
             # ask if the person is the same one as in the min-different photo
             name_match = diff_names[min_idx]
-
-            print('Welcome ' + name_match)
-            window['Login_User_Verif'].Update(data = 'Verified User: ' + name_match)
+            if diff_scores[min_idx] < 3:
+                print('Welcome ' + name_match)
+                window['Login_User_Verif'].Update('Verified User: ' + name_match)
+                #ARDUINO CODE - TURN ON LIGHT
+                turnOnLED()
 
         if event == sg.WIN_CLOSED or event == 'Exit1':
+            turnOffLED()
             break
 
         window.refresh()
