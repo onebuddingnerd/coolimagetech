@@ -12,17 +12,22 @@ import serial
 
 commPort = '/dev/cu.usbmodem14101'
 ser = serial.Serial(commPort, baudrate = 9600, timeout = 1)
-
+sg.theme('DarkBlue1')
+width = 700
+height = 600
+    
 def mkGreetLayout():
     left_col = [
         [sg.Button('New User')],
-        [sg.Button('Returning User')]
+        [sg.Button('Returning User')],
+        [sg.Button('Exit')]
     ]
 
     right_col = [
-        [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
+        [sg.Text("GROCERY GUESSER", font = "Helvetica", text_color = "goldenrod1")],
+        [sg.Text("This application uses facial recognition and machine learning to guess what groceries you want!", text_color = "sandy brown")],
         [sg.Text(size=(40, 1), key="-TOUT_GREET-")],
-        [sg.Image(key="-IMAGE_GREET-")],
+        [sg.Image(key="-IMAGE_GREET-")]
     ]
 
     layout = [[sg.Column(left_col), sg.Column(right_col)]]
@@ -31,36 +36,19 @@ def mkGreetLayout():
 
 def mkSignupLayout():
     left_col = [
-        [sg.Text('Please Enter Your Name')],
+        [sg.Text('Sign Up', key = "SignUp_Login")],
+        [sg.Text('Please Enter Your Name', key = "Enter_Name", size = (30,1))],
         [sg.Input(key = '-NEWNAME-')],
         [sg.Button('Lock Face')],
-        [sg.Button('Submit')],
-        [sg.Button('Exit1')]
+        [sg.Button('Submit')]
     ]
 
     right_col = [
-        [sg.Text("Webcam Playback (Press Space to Begin Login/Signup)")],
         [sg.Text(size=(40, 1), key="-TOUT-SIGNUP-")],
-        [sg.Image(key="-IMAGE_SIGNUP-")]
-    ]
-
-    layout = [[sg.Column(left_col), sg.Column(right_col)]]
-
-    return layout
-
-def mkLoginLayout():
-    # DO LATER
-
-    left_col = [
-        [sg.Text("Authenticate: Freeze Frame by pressing Lock; Wait for Auth (NONE changes to name if verified) ")],
-        [sg.Text('Verified User: NONE', key = 'Login_User_Verif')],
-        [sg.Button('Lock')],
-        [sg.Button('Submit1')]
-    ]
-
-    right_col = [
-        [sg.Text("Webcam Playback")],
-        [sg.Image(key = '-IMAGE_LOGIN-')]
+        [sg.Text(size = (50, 1), key = 'New_User_Registered', text_color = "yellow green")],
+        [sg.Image(key="-STORED_FACE-")],
+        [sg.Text('', key = 'Login_User_Verif', size = (25, 1), text_color = "yellow green")]
+        #[sg.Image(key="-IMAGE_SIGNUP-")]
     ]
 
     layout = [[sg.Column(left_col), sg.Column(right_col)]]
@@ -68,8 +56,7 @@ def mkLoginLayout():
     return layout
 
 LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-')],
-            [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)],
-            [sg.Column(mkLoginLayout(), key = '-LOGIN-', visible = False)]]
+            [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)]]
 
 #### BEGIN: code from previous file #### 
 
@@ -122,9 +109,14 @@ def pil2cv(pil):
     cv2im = np.array(pil)
     return cv2im[:,:,::-1] # reversing the z-axis (color channels: RGB -> BGR)
 
-def resize_image(frame):
+def resize_image_signup(frame):
     framePIL = cv2pil(frame)
-    framePIL = framePIL.resize((600,400))
+    framePIL = framePIL.resize((200,150))
+    return pil2cv(framePIL)
+
+def resize_image_home_page(frame):
+    framePIL = cv2pil(frame)
+    framePIL = framePIL.resize((300,200))
     return pil2cv(framePIL)
 
 def turnOnLED():
@@ -134,8 +126,7 @@ def turnOffLED():
     ser.write(b'x')
     
 def mainlooprun():
-
-    window = sg.Window('Login App',LAYOUTS)
+    window = sg.Window('Grocery Guesser',LAYOUTS, size=(width,height))
     # print('vid capture about to begin PLEASE')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -151,40 +142,35 @@ def mainlooprun():
     freeze_frame_login = None
     login_frz_req = False
     x2,y2,w2,h2 = None,None,None,None
-    
+    newUser = False
     while True:
         event, vals = window.read(timeout = 20)
-        # ret, frame = cap.read()
-        # print("event:", event, iterations)
-        # ret, frame = cap.read()
-        
-        # if playback_requested:
         ret, frame = cap.read()
 
         faces = faceCascade.detectMultiScale(frame, 1.3, 5)
-        # print(len(faces))
-
         # Draw a rectangle around the face(s) in the frame
         for (x,y,w,h) in faces:
             cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
         # repeatedly update the 'Image' in the GUI with the captured frame
-        frame_signup = frame if not signup_frz_req else freeze_frame_signup
-        window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame_signup)))
-        # window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image(frame)))
-        frame_login = frame if not login_frz_req else freeze_frame_login
-        window['-IMAGE_LOGIN-'].Update(data = get_bytes(resize_image(frame_login)))
+        #frame_signup = frame if not signup_frz_req else freeze_frame_signup
+        window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image_home_page(frame)))
+        if signup_frz_req:
+            window.FindElement('-STORED_FACE-').Update(data = get_bytes(resize_image_signup(freeze_frame_signup)))
+        if login_frz_req:
+            window.FindElement('-STORED_LOGIN_FACE-').Update(data = get_bytes(resize_image_signup(freeze_frame_login)))
+        #frame_login = frame if not login_frz_req else freeze_frame_login
+        #window['-IMAGE_LOGIN-'].Update(data = get_bytes(resize_image(frame_login)))
 
         if event == 'New User':
-
             playback_requested = True
-
             # make greet window invisible and signup window visible instead
-            window['-GREET-'].update(visible = False)
+            #window['-LOGIN-'].update(visible = False)
             window['-SIGNUP-'].update(visible = True)
-
-            # window.['-IMAGE-'].update(data = get_bytes(frame))
-
+            window['SignUp_Login'].Update("Sign Up")
+            #window['-IMAGE_GREET-'].update(data = get_bytes(resize_image_home_page(frame)))
+            newUser = True
+            
         # window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
         # print(faces)
 
@@ -197,19 +183,31 @@ def mainlooprun():
                 signup_frz_req = True
 
         #newname = input("enter name: ")
-        if event == 'Submit':
+        if event == 'Submit' and newUser:
             name = vals['-NEWNAME-']
-            print(name)
-            # x,y,w,h = faces[0]
+            window['New_User_Registered'].Update("New user '" + name + "' registered with this photo!")
             uncropped, cropped = freeze_frame_signup, freeze_frame_signup[y1:y1+h1,x1:x1+w1]
             cv2.imwrite('./saved_faces/'+name+'.png', uncropped)
             cv2.imwrite('./saved_faces/'+name+'_pp.png', cropped)
-            print('new user registered\n')
+            newUser = False
             
+        elif event == 'Submit' and not newUser:
+            uncropped, cropped = freeze_frame_signup, freeze_frame_signup[y1:y1+h1,x1:x1+w1]
+            diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
 
-        if event == 'Returning User': # Returning User
-            window['-GREET-'].update(visible = False)
-            window['-LOGIN-'].update(visible = True)
+            min_idx = get_min_idx(diff_scores)            
+            name_match = diff_names[min_idx]
+            if diff_scores[min_idx] < 4:
+                window['Login_User_Verif'].Update('Welcome ' + name_match)
+                window['New_User_Registered'].Update("")
+                turnOnLED()
+                
+        if event == 'Returning User':
+            window['-SIGNUP-'].update(visible = True)
+            #window['-LOGIN-'].update(visible = True)
+            window['SignUp_Login'].Update("Login")
+            window['Enter_Name'].Update("Please enter your name for verification")
+            window['New_User_Registered'].Update("")
 
         if event == 'Lock':
             if len(faces) > 0:
@@ -218,23 +216,9 @@ def mainlooprun():
                 freeze_frame_login = frame
                 login_frz_req = True
 
-        if event == 'Submit1':
-            uncropped, cropped = freeze_frame_login, freeze_frame_login[y2:y2+h2,x2:x2+w2]
-            diff_scores, diff_names = compute_diff_scores(uncropped, cropped)
+       
 
-            min_idx = get_min_idx(diff_scores)
-            
-            print(diff_scores[min_idx], diff_names, diff_scores)
-            
-            # ask if the person is the same one as in the min-different photo
-            name_match = diff_names[min_idx]
-            if diff_scores[min_idx] < 3:
-                print('Welcome ' + name_match)
-                window['Login_User_Verif'].Update('Verified User: ' + name_match)
-                #ARDUINO CODE - TURN ON LIGHT
-                turnOnLED()
-
-        if event == sg.WIN_CLOSED or event == 'Exit1':
+        if event == sg.WIN_CLOSED or event == 'Exit':
             turnOffLED()
             break
 
