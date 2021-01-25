@@ -77,8 +77,22 @@ def mkGrocerySelectorLayout():
         [sg.Button('Exit', key = 'exit2')]
     ]
 
+    # right_col = [
+    #     [sg.Image(key = '-APPROVAL-')] # use hand cascade here
+    # ]
+
+    layout = [[sg.Column(left_col)]], # sg.Column(right_col)]]
+
+    return layout
+
+def mkRecommendationsLayout(): 
+    left_col = [
+        [sg.Button('Get My Recommendations')],
+        [sg.Text('', key = 'items_and_budget')]
+    ]
+
     right_col = [
-        [sg.Image(key = '-APPROVAL-')] # use hand cascade here
+        [sg.Image(key = '-APPROVAL-')]
     ]
 
     layout = [[sg.Column(left_col), sg.Column(right_col)]]
@@ -88,7 +102,8 @@ def mkGrocerySelectorLayout():
 
 LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-'),
             sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False),
-            sg.Column(mkGrocerySelectorLayout(), key = '-GROCERY-', visible = False)]]
+            sg.Column(mkGrocerySelectorLayout(), key = '-GROCERY-', visible = False),
+            sg.Column(mkRecommendationsLayout(), key = '-REC-', visible = False)]]
 
 #### BEGIN: code from previous file #### 
 
@@ -176,6 +191,8 @@ def mainlooprun():
     x2,y2,w2,h2 = None,None,None,None
     newUser = False
 
+    approval_detection_active = False
+
     while True:
         event, vals = window.read(timeout = 20)
         ret, frame = cap.read()
@@ -188,13 +205,15 @@ def mainlooprun():
         
         faces = faceCascade.detectMultiScale(frame, 1.3, 5)
         # Draw a rectangle around the face(s) in the frame
-        for (x,y,w,h) in faces:
-            cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
+        if not approval_detection_active:
+            for (x,y,w,h) in faces:
+                cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
         # Draw a rectangle around the hand(s) in the frame
-        for (x,y,w,h) in hands:
-            cv2.rectangle(frame, (x,y), (x+w,y+h), (122,122,0),2)
-            cv2.rectangle(mask, (x,y),(x+w,y+h),255,-1)
+        if approval_detection_active:
+            for (x,y,w,h) in hands:
+                cv2.rectangle(frame, (x,y), (x+w,y+h), (122,122,0),2)
+                cv2.rectangle(mask, (x,y),(x+w,y+h),255,-1)
 
         img2 = cv2.bitwise_and(thresh1, mask)
         final = cv2.GaussianBlur(img2,(7,7),0)  
@@ -207,6 +226,7 @@ def mainlooprun():
         #frame_signup = frame if not signup_frz_req else freeze_frame_signup
         window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image_home_page(frame)))
         window.FindElement('-STORED_FACE-').Update(data = get_bytes(resize_image_signup(frame)))
+        window.FindElement('-APPROVAL-').Update(data = get_bytes(resize_image_signup(frame)))
         if signup_frz_req:
             window.FindElement('-STORED_FACE-').Update(data = get_bytes(resize_image_signup(freeze_frame_signup)))
         if login_frz_req:
@@ -232,13 +252,21 @@ def mainlooprun():
         if event == 'Add Item to List':
             new_item = vals['-NEW_ITEM-']
             currusr_data.add_product(new_item)
-            currusr_data.debug_print()
+            # currusr_data.debug_print()
 
         if event == 'Finished with List':
             currusr_data.list_reset()
 
         if event == 'Recommendations':
-            print(currusr_data.get_ordered_recs())
+            window['-GROCERY-'].update(visible = False)
+            window['-REC-'].update(visible = True) 
+            approval_detection_active = True
+
+        if event == 'Get My Recommendations':
+            recs, price = currusr_data.get_ordered_recs_prices()
+            update_items = ''.join([(item + ', ') for item in recs[:-1]] + [recs[-1]])
+            update_text = 'Recommendations: ' + update_items + '. Cost is ' + str(price)
+            window['items_and_budget'].Update(update_text)
 
         ### END: CODE FOR GROCERY MENU ###
 
