@@ -1,4 +1,6 @@
 
+from product_info_get import WebScrape
+
 class UserData:
 
     def __init__(self, name):
@@ -6,6 +8,7 @@ class UserData:
         self.freq_data = {}
         self.freq_data[1] = set()
         self.list_current = []
+        self.price_getter = WebScrape()
 
     def list_reset(self):
         self.list_current = []
@@ -39,12 +42,13 @@ class UserData:
         else:
             self.freq_upgrade(product, product_freqkey)
 
-    def get_ordered_recs(self):
+    def get_ordered_recs_prices(self):
         recs = []
         for freq in sorted(list(self.freq_data.keys()), reverse = True):
             recs.extend(self.freq_data[freq])
 
-        return recs
+        price = self.price_getter.selenium_script(recs)
+        return recs, price
 
     def debug_print(self):
         print(self.freq_data, self.list_current)
