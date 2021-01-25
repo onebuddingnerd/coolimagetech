@@ -15,8 +15,9 @@ width = 700
 height = 600
 
 all_userdata_file = './all_userdata.pickle'
+ALL_USERDATA = {}
 ALL_USERDATA = None
-if os.path.exists(all_userdata_file):
+if os.path.exists(all_userdata_file) and os.path.getsize(all_userdata_file) > 0:
     ALL_USERDATA = pickle.load(open(all_userdata_file, 'rb'))
 else:
     ALL_USERDATA = {}
@@ -72,7 +73,8 @@ def mkGrocerySelectorLayout():
         [sg.Input(key = '-NEW_ITEM-')],
         [sg.Button('Add Item to List')],
         [sg.Button('Finished with List')],
-        [sg.Button('Recommendations')]
+        [sg.Button('Recommendations')],
+        [sg.Button('Exit', key = 'exit2')]
     ]
 
     right_col = [
@@ -84,7 +86,8 @@ def mkGrocerySelectorLayout():
     return layout
 
 
-LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-'),sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False),
+LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-'),
+            sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False),
             sg.Column(mkGrocerySelectorLayout(), key = '-GROCERY-', visible = False)]]
 
 #### BEGIN: code from previous file #### 
@@ -194,7 +197,7 @@ def mainlooprun():
             cv2.rectangle(mask, (x,y),(x+w,y+h),255,-1)
 
         img2 = cv2.bitwise_and(thresh1, mask)
-        final = cv2.GaussianBlur(img2,(7,7),0)	
+        final = cv2.GaussianBlur(img2,(7,7),0)  
         contours, hierarchy = cv2.findContours(final, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
         cv2.drawContours(frame, contours, 0, (255,255,0), 3)
@@ -227,8 +230,9 @@ def mainlooprun():
         ### BEGIN: CODE FOR GROCERY MENU ###
 
         if event == 'Add Item to List':
-            new_item = window['-NEW_ITEM-']
+            new_item = vals['-NEW_ITEM-']
             currusr_data.add_product(new_item)
+            currusr_data.debug_print()
 
         if event == 'Finished with List':
             currusr_data.list_reset()
@@ -282,6 +286,7 @@ def mainlooprun():
                 account_active = True
 
         if event == 'Returning User':
+            window['-GREET-'].update(visible = False)
             window['-SIGNUP-'].update(visible = True)
             window['SignUp_Login'].Update("Login")
             window['Enter_Name'].Update("Please enter your name for verification")
@@ -294,7 +299,7 @@ def mainlooprun():
                 freeze_frame_login = frame
                 login_frz_req = True
 
-        if event == sg.WIN_CLOSED or event == 'Exit':
+        if event == sg.WIN_CLOSED or event == 'Exit' or event == 'exit2':
             break
 
         window.refresh()
