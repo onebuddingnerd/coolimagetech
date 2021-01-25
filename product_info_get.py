@@ -1,22 +1,46 @@
+import pyautogui as pg
+import webbrowser
+from selenium import webdriver
 
-import pandas as pd
-import numpy as np
-import pickle
+class WebScrape(object):
+    def __init__(self, listOfFoods):
+        self.listOfFoods = listOfFoods
+        
+    def selenium_script(self):
+        browser = webdriver.Safari()
+        #browser.maximize_window()
 
-product_fname = 'C:\\Users\\avikr\\Downloads\\instacart_data\\products\\products.csv'
-PRODUCTS_DF = pd.read_csv(product_fname)
-PRODUCS_W_PRICES_DF = PRODUCTS_DF[['product_id','product_name']]
+        totalPrice = 0
+        length = len(self.listOfFoods)
+        for food in self.listOfFoods:
+            browser.get("https://shop.gianteagle.com/west-seventh-street/search?q=" + food)
+            #bodyText = browser.page_source
+            pg.sleep(4)
+            try:
+                name = browser.find_element_by_id('content')
+                total = 0
+                numProducts = 0
+                
+                for item in name.text.split():
+                    if "$" in item:
+                        dollar_sign = item.index("$")
+                        addToPrices = True
+                        for char in item[dollar_sign+1:]:
+                            if not (ord(char) == 46 or (48 <= ord(char) and ord(char) <= 57)):
+                                addToPrices = False
+                        if addToPrices:
+                            add = float(item[dollar_sign+1:])
+                            if add < 50:
+                                total += add
+                                numProducts += 1
+                avg = total/numProducts
+                totalPrice += avg
+                        
+            except:
+                print('Was not able to find product in grocery store')
 
-def colvect_to_vect(v):
-	return v.reshape(v.shape[0])
+        #print(prices)
+        return totalPrice/length
 
-# in: string for product query
-# out: average top hit price
-def selenium_script(product_query):
-	# LISA's CODE HERE
-	return prices # REPLACE
-
-PRODUCTS_W_PRICES_DF['price'] = [selenium_script(product) for product in colvect_to_vect(PRODUCTS_DF[['product_name']])] 
-PRODUCTS_W_PRICES_DF.to_csv(r'./products_prices.csv', index = False)
-
-
+webObj = WebScrape(['orange', 'strawberries', 'potato'])
+print(webObj.selenium_script())
