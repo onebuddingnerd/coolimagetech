@@ -25,7 +25,11 @@
 
 1. Cool applications based on storing user data and presenting content tailored to users (based on that data)
 
-2. Still thinking!
+#### To-Do
+1. Instead of printing to terminal, show recommendations on GUI
+2. Get total price and show on GUI
+3. Show neural network
+4. Hand recognition - need to have video in layout
 
 
 
