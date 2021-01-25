@@ -7,15 +7,24 @@ from PIL import Image
 import face_recognition
 import io
 import PySimpleGUI as sg
-import serial
 
+from memorizer import UserData
 
-commPort = '/dev/cu.usbmodem14101'
-ser = serial.Serial(commPort, baudrate = 9600, timeout = 1)
 sg.theme('DarkBlue1')
 width = 700
 height = 600
-    
+
+all_userdata_file = './all_userdata.pickle'
+ALL_USERDATA = None
+if os.path.exists(all_userdata_file):
+    ALL_USERDATA = pickle.load(open(all_userdata_file, 'rb'))
+else:
+    ALL_USERDATA = {}
+
+def pickle_save(fname, data):
+    with open(fname + '.pickle', 'wb') as f:
+        pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+
 def mkGreetLayout():
     left_col = [
         [sg.Button('New User')],
@@ -47,16 +56,37 @@ def mkSignupLayout():
         [sg.Text(size=(40, 1), key="-TOUT-SIGNUP-")],
         [sg.Text(size = (50, 1), key = 'New_User_Registered', text_color = "yellow green")],
         [sg.Image(key="-STORED_FACE-")],
-        [sg.Text('', key = 'Login_User_Verif', size = (25, 1), text_color = "yellow green")]
-        #[sg.Image(key="-IMAGE_SIGNUP-")]
+        [sg.Text('', key = 'Login_User_Verif', size = (25, 1), text_color = "yellow green")],
+        [sg.Column([[sg.Button('Proceed to Grocery Selection Menu')]], key = 'go-to-listmenu', visible = False)]
+        # [sg.Button('')]
+        # [sg.Image(key="-IMAGE_SIGNUP-")]
     ]
 
     layout = [[sg.Column(left_col), sg.Column(right_col)]]
 
     return layout
 
+def mkGrocerySelectorLayout():
+    left_col = [
+        [sg.Text("Enter an item:", key = 'grocery_starttext')],
+        [sg.Input(key = '-NEW_ITEM-')],
+        [sg.Button('Add Item to List')],
+        [sg.Button('Finished with List')],
+        [sg.Button('Recommendations')]
+    ]
+
+    right_col = [
+        [sg.Image(key = '-APPROVAL-')] # use hand cascade here
+    ]
+
+    layout = [[sg.Column(left_col), sg.Column(right_col)]]
+
+    return layout
+
+
 LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-')],
-            [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)]]
+            [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)],
+            [sg.Column(mkGrocerySelectorLayout(), key = '-GROCERY-', visible = False)]]
 
 #### BEGIN: code from previous file #### 
 
@@ -83,8 +113,8 @@ def compute_diff_scores(i1, i2): # params: full frame (a_face), crop(a_face_only
     k = 0
     while (k < len(users)):
         file = users[k]
-        if (file.endswith('.png')):
-            if (file.endswith('_pp.png')):
+        if file.endswith('.png'):
+            if file.endswith('_pp.png'):
                 name = file[:file.index('_pp.png')]
                 # if mode == 'debug': print('comparing with ' + name)
                 filenames.append(name)
@@ -118,19 +148,18 @@ def resize_image_home_page(frame):
     framePIL = cv2pil(frame)
     framePIL = framePIL.resize((300,200))
     return pil2cv(framePIL)
-
-def turnOnLED():
-    ser.write(b'o')
-
-def turnOffLED(): 
-    ser.write(b'x')
     
 def mainlooprun():
-    window = sg.Window('Grocery Guesser',LAYOUTS, size=(width,height))
+    window = sg.Window('Grocery Guesser', LAYOUTS, size=(width,height))
     # print('vid capture about to begin PLEASE')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     iterations = 0
+
+    # Transition to grocery menu
+    account_active = False #True if logged in or signed up
+    proceeded = False
+    currusr_data = None
 
     playback_requested = False
     ret, frame = None, None
@@ -143,6 +172,7 @@ def mainlooprun():
     login_frz_req = False
     x2,y2,w2,h2 = None,None,None,None
     newUser = False
+
     while True:
         event, vals = window.read(timeout = 20)
         ret, frame = cap.read()
@@ -161,6 +191,33 @@ def mainlooprun():
             window.FindElement('-STORED_LOGIN_FACE-').Update(data = get_bytes(resize_image_signup(freeze_frame_login)))
         #frame_login = frame if not login_frz_req else freeze_frame_login
         #window['-IMAGE_LOGIN-'].Update(data = get_bytes(resize_image(frame_login)))
+
+        ### BEGIN: CODE FOR TRANSITION TO GROCERY MENU ###
+
+        if account_active:
+            window['go-to-listmenu'].update(visible = True)
+
+        if event == 'Proceed to Grocery Selection Menu':
+        # a login or signup has happened and then the proceed button was pressed
+            window['-GREET-'].update(visible = False)
+            window['-SIGNUP-'].update(visible = False)
+            window['-GROCERY-'].update(visible = True)
+
+        ### END: CODE FOR TRANSITION TO GROCERY MENU ###
+
+        ### BEGIN: CODE FOR GROCERY MENU ###
+
+        if event == 'Add Item to List':
+            new_item = window['-NEW_ITEM-']
+            currusr_data.add_product(new_item)
+
+        if event == 'Finished with List':
+            currusr_data.list_reset()
+
+        if event == 'Recommendations':
+            print(currusr_data.get_ordered_recs())
+
+        ### END: CODE FOR GROCERY MENU ###
 
         if event == 'New User':
             playback_requested = True
@@ -186,9 +243,12 @@ def mainlooprun():
         if event == 'Submit' and newUser:
             name = vals['-NEWNAME-']
             window['New_User_Registered'].Update("New user '" + name + "' registered with this photo!")
+            account_active = True
             uncropped, cropped = freeze_frame_signup, freeze_frame_signup[y1:y1+h1,x1:x1+w1]
             cv2.imwrite('./saved_faces/'+name+'.png', uncropped)
             cv2.imwrite('./saved_faces/'+name+'_pp.png', cropped)
+            ALL_USERDATA[name] = UserData(name)
+            currusr_data = ALL_USERDATA[name]
             newUser = False
             
         elif event == 'Submit' and not newUser:
@@ -200,8 +260,9 @@ def mainlooprun():
             if diff_scores[min_idx] < 4:
                 window['Login_User_Verif'].Update('Welcome ' + name_match)
                 window['New_User_Registered'].Update("")
-                turnOnLED()
-                
+                currusr_data = ALL_USERDATA[name_match]
+                account_active = True
+
         if event == 'Returning User':
             window['-SIGNUP-'].update(visible = True)
             #window['-LOGIN-'].update(visible = True)
@@ -216,15 +277,14 @@ def mainlooprun():
                 freeze_frame_login = frame
                 login_frz_req = True
 
-       
-
         if event == sg.WIN_CLOSED or event == 'Exit':
-            turnOffLED()
             break
 
         window.refresh()
 
         iterations += 1
+
+    pickle_save('all_userdata', ALL_USERDATA)
     window.close()
 
 mainlooprun()
