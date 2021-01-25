@@ -7,7 +7,7 @@ from PIL import Image
 import face_recognition
 import io
 import PySimpleGUI as sg
-
+import pickle
 from memorizer import UserData
 
 sg.theme('DarkBlue1')
@@ -84,9 +84,8 @@ def mkGrocerySelectorLayout():
     return layout
 
 
-LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-')],
-            [sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False)],
-            [sg.Column(mkGrocerySelectorLayout(), key = '-GROCERY-', visible = False)]]
+LAYOUTS = [[sg.Column(mkGreetLayout(), key = '-GREET-'),sg.Column(mkSignupLayout(), key = '-SIGNUP-', visible = False),
+            sg.Column(mkGrocerySelectorLayout(), key = '-GROCERY-', visible = False)]]
 
 #### BEGIN: code from previous file #### 
 
@@ -154,7 +153,8 @@ def mainlooprun():
     # print('vid capture about to begin PLEASE')
     cap = cv2.VideoCapture(0)
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    iterations = 0
+    handCascade = cv2.CascadeClassifier('haar_hand.xml')
+    #iterations = 0
 
     # Transition to grocery menu
     account_active = False #True if logged in or signed up
@@ -177,14 +177,33 @@ def mainlooprun():
         event, vals = window.read(timeout = 20)
         ret, frame = cap.read()
 
+        blur = cv2.GaussianBlur(frame,(5,5),0) 
+        gray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
+        retval2,thresh1 = cv2.threshold(gray,70,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU) 
+        hands = handCascade.detectMultiScale(thresh1, 1.3, 6)
+        mask = np.zeros(thresh1.shape, dtype = "uint8")
+        
         faces = faceCascade.detectMultiScale(frame, 1.3, 5)
         # Draw a rectangle around the face(s) in the frame
         for (x,y,w,h) in faces:
             cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
 
+        # Draw a rectangle around the hand(s) in the frame
+        for (x,y,w,h) in hands:
+            cv2.rectangle(frame, (x,y), (x+w,y+h), (122,122,0),2)
+            cv2.rectangle(mask, (x,y),(x+w,y+h),255,-1)
+
+        img2 = cv2.bitwise_and(thresh1, mask)
+        final = cv2.GaussianBlur(img2,(7,7),0)	
+        contours, hierarchy = cv2.findContours(final, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        cv2.drawContours(frame, contours, 0, (255,255,0), 3)
+        cv2.drawContours(final, contours, 0, (255,255,0), 3)
+        
         # repeatedly update the 'Image' in the GUI with the captured frame
         #frame_signup = frame if not signup_frz_req else freeze_frame_signup
         window.FindElement('-IMAGE_GREET-').Update(data = get_bytes(resize_image_home_page(frame)))
+        window.FindElement('-STORED_FACE-').Update(data = get_bytes(resize_image_signup(frame)))
         if signup_frz_req:
             window.FindElement('-STORED_FACE-').Update(data = get_bytes(resize_image_signup(freeze_frame_signup)))
         if login_frz_req:
@@ -222,10 +241,9 @@ def mainlooprun():
         if event == 'New User':
             playback_requested = True
             # make greet window invisible and signup window visible instead
-            #window['-LOGIN-'].update(visible = False)
+            window['-GREET-'].update(visible = False)
             window['-SIGNUP-'].update(visible = True)
             window['SignUp_Login'].Update("Sign Up")
-            #window['-IMAGE_GREET-'].update(data = get_bytes(resize_image_home_page(frame)))
             newUser = True
             
         # window.FindElement('-IMAGE_SIGNUP-').Update(data = get_bytes(resize_image(frame)))
@@ -265,7 +283,6 @@ def mainlooprun():
 
         if event == 'Returning User':
             window['-SIGNUP-'].update(visible = True)
-            #window['-LOGIN-'].update(visible = True)
             window['SignUp_Login'].Update("Login")
             window['Enter_Name'].Update("Please enter your name for verification")
             window['New_User_Registered'].Update("")
@@ -282,7 +299,7 @@ def mainlooprun():
 
         window.refresh()
 
-        iterations += 1
+        #iterations += 1
 
     pickle_save('all_userdata', ALL_USERDATA)
     window.close()
