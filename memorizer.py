@@ -1,3 +1,4 @@
+
 class UserData:
 
     def __init__(self, name):
@@ -13,7 +14,7 @@ class UserData:
         key = None
         for k in self.freq_data.keys():
             if product in self.freq_data[k]:
-                k = key
+                key = k
                 break
 
         return key
@@ -21,7 +22,7 @@ class UserData:
     def is_recommended_product(self, product):
         return self.find_freqkey() > 0
 
-    def freq_upgrade(product, freq_prev):
+    def freq_upgrade(self, product, freq_prev):
         self.freq_data[freq_prev].remove(product)
 
         if freq_prev + 1 in self.freq_data.keys():
@@ -44,6 +45,9 @@ class UserData:
             recs.extend(self.freq_data[freq])
 
         return recs
+
+    def debug_print(self):
+        print(self.freq_data, self.list_current)
 
 
 
