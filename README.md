@@ -35,11 +35,7 @@ Run the following command on the command line, once the repo is cloned/downloade
 
 ----
 
-#### Pending Intents:
-
-1. Cool applications based on storing user data and presenting content tailored to users (based on that data)
-
-#### To-Do
+#### To-Do (1/25/21)
 1. Instead of printing to terminal, show recommendations on GUI
 2. Get total price and show on GUI
 3. Show neural network
