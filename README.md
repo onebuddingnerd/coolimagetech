@@ -7,7 +7,7 @@ This is a grocery list guesser with face-based authentication (for new-user sign
 	
 #### Execute
 
-Run the following command on the command line, once the repo is cloned:
+Run the following command on the command line, once the repo is cloned/downloaded:
 		
 	python3 gui1-1.py
 
